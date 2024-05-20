@@ -91,13 +91,12 @@ variables:
   concat_str: !input persons_concat
   addactions: !input actions
   persons_count: >
-    {%- set first = true -%} 
     {%- set data = namespace(nomes=[]) -%}
     {%- for person in persons_list -%}
       {%- if is_state(person, 'home') and (now() - states[person].last_changed).total_seconds() < timeout * 60 -%}
         {%- set data.nomes = data.nomes + [states[person].name] -%}
       {%- endif -%}
-    {%- endfor -%} 
+    {%- endfor -%}
     {{ data.nomes }}
   persons_names: >
     {%- set finalstr = ",".join(persons_count) -%} 
@@ -112,7 +111,7 @@ action:
   - condition: template
     value_template: !input condition
   - condition: template
-    value_template: '{{ persons_count|length > 0 }}'
+    value_template: '{{ persons_count | length > 0 }}'
   - alias: "Generate TTS Message"
     service: conversation.process
     data:
@@ -120,18 +119,18 @@ action:
       text: >
         {%- set single_lst = single_msg.split("\n") -%}
         {%- set multiple_lst = multiple_msg.split("\n") -%}
-        {%- if persons_count|length > 1 -%}
+        {%- if persons_count | length > 1 -%}
           {{ multiple_lst | random | replace('<persons>', persons_names) }}
-        {%- elif persons_count|length > 0 -%}
+        {%- elif persons_count | length > 0 -%}
           {{ single_lst | random | replace('<person>', persons_names) }}
         {%- endif -%}
     response_variable: agent_response
-  - service: tts.piper
+  - service: tts.speak
     data:
       entity_id: !input target
       message: "{{ agent_response.speech.plain.speech }}"
   - condition: template
-    value_template: '{{ addactions|length > 0 }}'
+    value_template: '{{ addactions | length > 0 }}'
   - choose: []
     default: !input actions
 mode: single
