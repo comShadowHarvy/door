@@ -74,6 +74,11 @@ blueprint:
       default: []
       selector:
         action: {}
+    conversation_agent:
+      name: Conversation Agent
+      description: The conversation agent to use for generating the TTS message.
+      selector:
+        conversation_agent: {}
   source_url: https://raw.githubusercontent.com/comShadowHarvy/door/main/door.yaml
 variables:
   persons_str: !input persons
@@ -104,10 +109,11 @@ action:
     value_template: !input condition
   - condition: template
     value_template: '{{ persons_count|length > 0 }}'
-  - service: tts.piper
+  - alias: "Generate TTS Message"
+    service: conversation.process
     data:
-      entity_id: !input target
-      message: >
+      agent_id: !input conversation_agent
+      text: >
         {%- set single_lst = single_msg.split("\n") -%}
         {%- set multiple_lst = multiple_msg.split("\n") -%}
         {%- if persons_count|length > 1 -%}
@@ -115,6 +121,11 @@ action:
         {%- elif persons_count|length > 0 -%}
           {{ single_lst | random | replace('<person>', persons_names) }}
         {%- endif -%}
+    response_variable: agent_response
+  - service: tts.piper
+    data:
+      entity_id: !input target
+      message: "{{ agent_response.speech.plain.speech }}"
   - condition: template
     value_template: '{{ addactions|length > 0 }}'
   - choose: []
