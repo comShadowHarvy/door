@@ -66,12 +66,6 @@ blueprint:
           domain:
             - media_player
           multiple: false
-    condition:
-      name: Condition to Run
-      description: Add a value_template for the condition to execute the automation
-      default: 'True'
-      selector:
-        text: {}
     actions:
       name: Additional Actions
       description: Actions to run after the execution of the automation
@@ -108,8 +102,6 @@ trigger:
     entity_id: !input sensor
     to: 'on'
 action:
-  - condition: template
-    value_template: !input condition
   - condition: template
     value_template: '{{ persons_count | length > 0 }}'
   - alias: "Generate TTS Message"
