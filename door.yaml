@@ -1,5 +1,5 @@
 blueprint:
-  name: TTS on Door Opening with Persons at Home
+  name: ShadowHarvy TTS on Door Opening with Persons at Home
   description: Sends TTS message to a media_player when the door is opened and a person is at home.
   domain: automation
   input:
