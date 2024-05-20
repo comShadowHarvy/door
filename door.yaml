@@ -1,1 +1,122 @@
-test
+blueprint:
+  name: TTS on Door Opening with Persons at Home
+  description: Sends TTS message to a media_player when the door is opened and a person is at home.
+  domain: automation
+  input:
+    binary_sensor:
+      name: Binary Sensor
+      selector:
+        entity:
+          domain:
+            - binary_sensor
+          device_class:
+            - door
+            - motion
+            - opening
+          multiple: false
+    persons:
+      name: Persons
+      selector:
+        entity:
+          domain:
+            - person
+          multiple: true
+    minutes:
+      name: Minutes
+      description: Minutes between person arriving home and door being triggered
+      default: 5
+      selector:
+        number:
+          min: 1.0
+          max: 30.0
+          step: 1.0
+          unit_of_measurement: min
+          mode: slider
+    message_single:
+      name: Message for Single Person
+      description: 'Message to greet a single person. One possible message per line. Use <person> tag to be replaced by the person’s name.'
+      selector:
+        text:
+          multiline: true
+          multiple: false
+    message_multiple:
+      name: Message for Multiple Persons
+      description: 'Message for multiple persons. One possible message per line. Use <persons> tag to be replaced by the persons’ names.'
+      selector:
+        text:
+          multiline: true
+          multiple: false
+    persons_concat:
+      name: Text to Concatenate Person Names
+      description: String to be used as a separator between names
+      default: ' and '
+      selector:
+        text:
+          multiline: false
+          multiple: false
+    target:
+      name: Target Devices
+      description: Target devices to play the TTS message
+      selector:
+        entity:
+          domain:
+            - media_player
+          multiple: false
+    condition:
+      name: Condition to Run
+      description: Add a value_template for the condition to execute the automation
+      default: 'True'
+      selector:
+        text: {}
+    actions:
+      name: Additional Actions
+      description: Actions to run after the execution of the automation
+      default: []
+      selector:
+        action: {}
+  source_url: https://raw.githubusercontent.com/comShadowHarvy/door/main/door.yaml
+variables:
+  persons_str: !input persons
+  persons_list: '{{ persons_str.split(",") | map("trim") | list }}'
+  timeout: !input minutes
+  concat_str: !input persons_concat
+  addactions: !input actions
+  persons_count: >
+    {%- set first = true -%} 
+    {%- set data = namespace(nomes=[]) -%}
+    {%- for person in persons_list -%}
+      {%- if is_state(person, 'home') and (now() - states[person].last_changed).total_seconds() < timeout * 60 -%}
+        {%- set data.nomes = data.nomes + [states[person].name] -%}
+      {%- endif -%}
+    {%- endfor -%} 
+    {{ data.nomes }}
+  persons_names: >
+    {%- set finalstr = ",".join(persons_count) -%} 
+    {{ finalstr.rsplit(",", 1) | join(concat_str) }}
+  single_msg: !input message_single
+  multiple_msg: !input message_multiple
+trigger:
+  - platform: state
+    entity_id: !input binary_sensor
+    to: 'on'
+action:
+  - condition: template
+    value_template: !input condition
+  - condition: template
+    value_template: '{{ persons_count|length > 0 }}'
+  - service: tts.piper
+    data:
+      entity_id: !input target
+      message: >
+        {%- set single_lst = single_msg.split("\n") -%}
+        {%- set multiple_lst = multiple_msg.split("\n") -%}
+        {%- if persons_count|length > 1 -%}
+          {{ multiple_lst | random | replace('<persons>', persons_names) }}
+        {%- elif persons_count|length > 0 -%}
+          {{ single_lst | random | replace('<person>', persons_names) }}
+        {%- endif -%}
+  - condition: template
+    value_template: '{{ addactions|length > 0 }}'
+  - choose: []
+    default: !input actions
+mode: single
