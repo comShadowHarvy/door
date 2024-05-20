@@ -3,16 +3,20 @@ blueprint:
   description: Sends TTS message to a media_player when the door is opened and a person is at home.
   domain: automation
   input:
-    binary_sensor:
-      name: Binary Sensor
+    sensor:
+      name: Sensor
+      description: A binary sensor, lock, or door to use as the trigger.
       selector:
         entity:
           domain:
             - binary_sensor
+            - lock
+            - door
           device_class:
             - door
             - motion
             - opening
+            - lock
           multiple: false
     persons:
       name: Persons
@@ -23,7 +27,7 @@ blueprint:
           multiple: true
     minutes:
       name: Minutes
-      description: Minutes between person arriving home and door being triggered
+      description: Minutes between person arriving home and sensor being triggered
       default: 5
       selector:
         number:
@@ -102,7 +106,7 @@ variables:
   multiple_msg: !input message_multiple
 trigger:
   - platform: state
-    entity_id: !input binary_sensor
+    entity_id: !input sensor
     to: 'on'
 action:
   - condition: template
